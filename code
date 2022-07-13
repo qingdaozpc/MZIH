@@ -1,0 +1,618 @@
+library(gamlss)
+library(gamlss.tr)
+gen.trun(par = 0, family = PO, type = "left")
+gen.trun(par = 0, family = NBI, type = "left")
+
+model<- read.csv(choose.files(),  quote = "",header=TRUE)
+model<-model[model$v10==1,]
+n=nrow(model)
+set.seed(123)
+a<-sample(1:n,n*0.7)
+a<-sort(a)
+train<-model[a,]
+test<-model[-a,]
+setwd("C:/Users/Pengcheng/Desktop/paper4/application")
+write.csv(train,file="train.csv")
+write.csv(test,file="test.csv")
+
+cor(model$y1, model$y2)
+table(model$y1, model$y2)
+X1<-model.matrix(~.-y1-y2-No-v9-v10,data=train)
+X2<-model.matrix(~.-y1-y2-No-v9-v10,data=test)
+Z1<-train$y1
+Z2<-train$y2
+z1=ifelse(Z1>0,1,0)
+z2=ifelse(Z2>0,1,0)
+testZ1<-test$y1
+testZ2<-test$y2
+testz1=ifelse(testZ1>0,1,0)
+testz2=ifelse(testZ2>0,1,0)
+n1=nrow(train)
+n2=nrow(test)
+v=c()
+for (i in 1:n1){
+  if (Z1[i]==0 & Z2[i]==0 ){
+    v[i]=1
+  }
+  else{
+    v[i]=0
+  }
+}
+
+##table
+Table.PO = function(y){
+  options(digits=8)
+  table1 = cbind( sum(dpois(0,y)),
+                  sum(dpois(1,y)),
+                  sum(dpois(2,y)),
+                  sum(dpois(3,y)),
+                  sum(dpois(4,y)),
+                  sum(dpois(5,y)),
+                  sum(dpois(6,y)),
+                  sum(dpois(7,y)),
+                  sum(dpois(8,y)),
+                  sum(dpois(9,y)),
+                  sum(dpois(10,y))
+  );
+  
+  table1 }
+
+Table.TRPO = function(y){
+  options(digits=8)
+  table1 = cbind(sum(dpois(1,y)/(1-exp(-y))),
+                 sum(dpois(2,y)/(1-exp(-y))),
+                 sum(dpois(3,y)/(1-exp(-y))),
+                 sum(dpois(4,y)/(1-exp(-y))),
+                 sum(dpois(5,y)/(1-exp(-y))),
+                 sum(dpois(6,y)/(1-exp(-y))),
+                 sum(dpois(7,y)/(1-exp(-y))),
+                 sum(dpois(8,y)/(1-exp(-y))),
+                 sum(dpois(9,y)/(1-exp(-y))),
+                 sum(dpois(10,y)/(1-exp(-y)))
+  );
+  
+  table1 }
+
+Table.NBI=function(x,y){
+  options(digits=8)
+  table1 = cbind(sum(dNBI(0,mu=x,sigma=y)),
+                 sum(dNBI(1,mu=x,sigma=y)),
+                 sum(dNBI(2,mu=x,sigma=y)),
+                 sum(dNBI(3,mu=x,sigma=y)),
+                 sum(dNBI(4,mu=x,sigma=y)),
+                 sum(dNBI(5,mu=x,sigma=y)),
+                 sum(dNBI(6,mu=x,sigma=y)),
+                 sum(dNBI(7,mu=x,sigma=y)),
+                 sum(dNBI(8,mu=x,sigma=y)),
+                 sum(dNBI(9,mu=x,sigma=y)),
+                 sum(dNBI(10,mu=x,sigma=y))
+  );
+  table1}
+
+Table.TRNBI=function(x,y){
+  options(digits=8)
+  table1 = cbind( sum(dNBI(1,mu=x,sigma=y)/(1-dNBI(0,mu=x,sigma=y))),
+                  sum(dNBI(2,mu=x,sigma=y)/(1-dNBI(0,mu=x,sigma=y))),
+                  sum(dNBI(3,mu=x,sigma=y)/(1-dNBI(0,mu=x,sigma=y))),
+                  sum(dNBI(4,mu=x,sigma=y)/(1-dNBI(0,mu=x,sigma=y))),
+                  sum(dNBI(5,mu=x,sigma=y)/(1-dNBI(0,mu=x,sigma=y))),
+                  sum(dNBI(6,mu=x,sigma=y)/(1-dNBI(0,mu=x,sigma=y))),
+                  sum(dNBI(7,mu=x,sigma=y)/(1-dNBI(0,mu=x,sigma=y))),
+                  sum(dNBI(8,mu=x,sigma=y)/(1-dNBI(0,mu=x,sigma=y))),
+                  sum(dNBI(9,mu=x,sigma=y)/(1-dNBI(0,mu=x,sigma=y))),
+                  sum(dNBI(10,mu=x,sigma=y)/(1-dNBI(0,mu=x,sigma=y)))
+  );
+  table1}
+##y1
+count1TRPO0=gamlss(Z1[Z1>0] ~ 1, family = POtr)
+count1TRNBI0=gamlss(Z1[Z1>0] ~ 1, family = NBItr, 
+                    sigma.start=exp(3.9163),mu.start=exp(-4.8371))
+count1PO0=gamlss(Z1[Z1>0]-1 ~ 1, family = PO)
+count1NBI0=gamlss(Z1[Z1>0]-1 ~ 1, family = NBI) #best
+
+table(Z1)
+Table.TRPO(fitted(count1TRPO0))
+Table.TRNBI(fitted(count1TRNBI0),exp(count1TRNBI0$sigma.coefficients))
+Table.PO(fitted(count1PO0))
+Table.NBI(fitted(count1NBI0),exp(count1NBI0$sigma.coefficients))
+logLik(count1TRPO0)
+logLik(count1TRNBI0)
+logLik(count1PO0)
+logLik(count1NBI0)
+
+##y2
+count2TRPO0=gamlss(Z2[Z2>0] ~ 1, family = POtr)
+count2TRNBI0=gamlss(Z2[Z2>0] ~ 1, family = NBItr,
+                    sigma.start=exp(3.9163),mu.start=exp(-4.8371))
+count2PO0=gamlss(Z2[Z2>0]-1 ~ 1, family = PO)
+count2NBI0=gamlss(Z2[Z2>0]-1 ~ 1, family = NBI) #best
+
+table(Z2)
+Table.TRPO(fitted(count2TRPO0))
+Table.TRNBI(fitted(count2TRNBI0),exp(count2TRNBI0$sigma.coefficients))
+Table.PO(fitted(count2PO0))
+Table.NBI(fitted(count2NBI0),exp(count2NBI0$sigma.coefficients))
+logLik(count2TRPO0)
+logLik(count2TRNBI0)
+logLik(count2PO0)
+logLik(count2NBI0)
+
+####model fitting####
+##MZIH##
+U1<-rep(0,10) ##score vector
+H1<-matrix(0,10,10) ##hessian matrix
+U2<-rep(0,10) ##score vector
+H2<-matrix(0,10,10) ##hessian matrix
+
+complete.hurdle=function(para){
+  repeat{
+    pi0=para[1]
+    b1=para[2:11]
+    b2=para[12:21]
+    pi1<-c(exp(X1%*%b1)/(1+exp(X1%*%b1)))
+    pi2<-c(exp(X1%*%b2)/(1+exp(X1%*%b2)))
+    para1<-para
+    ###E-step###
+    u<-(1-pi0)/(1-pi0+pi0*(1-pi1)*(1-pi2))
+    ###M-step###
+    U1[1:10]=((1-v)*z1-(1-u*v)*pi1)%*%X1
+    U2[1:10]=((1-v)*z2-(1-u*v)*pi2)%*%X1
+    for (i in 1:10){
+      for (j in 1:10){
+        H1[i,j]=-sum((1-u*v)*pi1*(1-pi1)*(X1[,i]*X1[,j]))
+      }
+    }
+    for (i in 1:10){
+      for (j in 1:10){
+        H2[i,j]=-sum((1-u*v)*pi2*(1-pi2)*(X1[,i]*X1[,j]))
+      }
+    }
+    para[1]=1-1/n1*sum(u*v)
+    para[2:11]=para1[2:11]-U1%*%solve(H1)
+    para[12:21]=para1[12:21]-U2%*%solve(H2)
+    dif=para-para1
+    if ((sum(dif*dif))<10^-16){
+      break
+    }
+  }
+  return (para)
+}
+
+occur1logit1<-glm(z1~v1+v2+v3+v4+v5+v6+v7+v8+v11,
+                  data=train,family="binomial")
+occur2logit1<-glm(z2~v1+v2+v3+v4+v5+v6+v7+v8+v11,
+                  data=train,family="binomial")
+
+hurdle.par=complete.hurdle(c(0.5,coefficients(occur1logit1),
+                             coefficients(occur2logit1)))
+
+hurdle.hessian=matrix()
+Hessian<-function(para){
+  pi0=para[1]
+  b1=para[2:11]
+  b2=para[12:21]
+  pi1<-c(exp(X1%*%b1)/(1+exp(X1%*%b1)))
+  pi2<-c(exp(X1%*%b2)/(1+exp(X1%*%b2)))
+  u<-(1-pi0)/(1-pi0+pi0*(1-pi1)*(1-pi2))
+  
+  H=matrix(0,21,21)
+  cov_pi0=v*(-1/(pi0*(1-pi0)))
+  cov_beta1=v*pi1
+  cov_beta2=v*pi2
+  ##pi0
+  H[1,1]=sum(-u*v/(1-pi0)^2-(1-u*v)/pi0^2)+
+    sum(cov_pi0^2*u*(1-u))
+  ##beta1
+  for (i in 1:10){
+    for (j in 1:10){
+      H[i+1,j+1]=-sum((1-u*v)*pi1*(1-pi1)*(X1[,i]*X1[,j]))+
+        sum((cov_beta1)^2*u*(1-u)*(X1[,i]*X1[,j]))
+    }
+  }
+  ##beta2
+  for (i in 1:10){
+    for (j in 1:10){
+      H[i+11,j+11]=-sum((1-u*v)*pi2*(1-pi2)*(X1[,i]*X1[,j]))+
+        sum((cov_beta2)^2*u*(1-u)*(X1[,i]*X1[,j]))
+    }
+  }
+  ##pi0*beta1
+  H[1,2:11]=(cov_pi0*cov_beta1*u*(1-u))%*%X1
+  H[2:11,1]=t(H[1,2:11])
+  ##pi0*beta2
+  H[1,12:21]=(cov_pi0*cov_beta2*u*(1-u))%*%X1
+  H[12:21,1]=t(H[1,12:21])
+  ##beta1*beta2
+  for (i in 1:10){
+    for (j in 1:10){
+      H[i+1,j+11]=sum(cov_beta1*cov_beta2*u*(1-u)*(X1[,i]*X1[,j]))
+    }
+  }
+  H[12:21,2:11]=t(H[2:11,12:21])
+  return(H)
+}
+hurdle.hessian=Hessian(hurdle.par)
+hurdle.par/sqrt(diag(solve(-hurdle.hessian)))
+
+m1<-train[train$y1>0,]
+m2<-train[train$y2>0,]
+count1NBI1=gamlss(y1-1 ~ v1+v2+v3+v4+v5+v6+v7+v8+v11, 
+                  data=m1,family=NBI(sigma.link="inverse"))
+count2NBI1=gamlss(y2-1 ~ v1+v2+v3+v4+v5+v6+v7+v8+v11, 
+                  data=m2,family=NBI(sigma.link="inverse"))
+
+count1NBI2=gamlss(y1-1 ~ 1,data=m1,family=NBI(sigma.link="inverse"))
+count2NBI2=gamlss(y2-1 ~ 1,data=m2,family=NBI(sigma.link="inverse"))
+
+loglik.hurdle <- function(para){
+  pi0=para[1]
+  b1=para[2:11]
+  b2=para[12:21]
+  pi1<-c(exp(X1%*%b1)/(1+exp(X1%*%b1)))
+  pi2<-c(exp(X1%*%b2)/(1+exp(X1%*%b2)))
+  l=sum(v*log(1-pi0+pi0*(1-pi1)*(1-pi2)))+sum(1-v)*log(pi0)+
+    sum((1-v)*(z1*log(pi1)+(1-z1)*log(1-pi1)))+
+    sum((1-v)*(z2*log(pi2)+(1-z2)*log(1-pi2)))
+  return(l)
+}
+
+loglik1=loglik.hurdle(hurdle.par)+logLik(count1NBI2)+logLik(count2NBI2)
+AIC1=-2*loglik1+2*25
+BIC1=-2*loglik1+log(n)*25
+
+###MZIP
+U1<-rep(0,10) ##score vector
+H1<-matrix(0,10,10) ##hessian matrix
+U2<-rep(0,10) ##score vector
+H2<-matrix(0,10,10) ##hessian matrix
+
+complete.po=function(para){
+  repeat{
+    pi0=para[1]
+    b1=para[2:11]
+    b2=para[12:21]
+    lambda1<-c(exp(X1%*%b1))
+    lambda2<-c(exp(X1%*%b2))
+    para1<-para
+    ###E-step###
+    u<-(1-pi0)/(1-pi0+pi0*exp(-lambda1-lambda2))
+    ###M-step###
+    U1[1:10]=(Z1-(1-u*v)*lambda1)%*%X1
+    U2[1:10]=(Z2-(1-u*v)*lambda2)%*%X1
+    for (i in 1:10){
+      for (j in 1:10){
+        H1[i,j]=-sum((1-u*v)*lambda1*(X1[,i]*X1[,j]))
+      }
+    }
+    for (i in 1:10){
+      for (j in 1:10){
+        H2[i,j]=-sum((1-u*v)*lambda2*(X1[,i]*X1[,j]))
+      }
+    }
+    para[1]=1-1/n1*sum(u*v)
+    para[2:11]=para1[2:11]-U1%*%solve(H1)
+    para[12:21]=para1[12:21]-U2%*%solve(H2)
+    
+    dif=para-para1
+    if ((sum(dif*dif))<10^-16){
+      break
+    }
+  }
+  return (para)
+}
+
+pom1=gamlss(y1 ~ v1+v2+v3+v4+v5+v6+v7+v8+v11, 
+            data=train,family=PO)
+pom2=gamlss(y2 ~ v1+v2+v3+v4+v5+v6+v7+v8+v11, 
+            data=train,family=PO)
+
+po.par=complete.po(c(0.5,coefficients(pom1),coefficients(pom2)))
+
+loglik.po <- function(para){
+  pi0=para[1]
+  b1=para[2:11]
+  b2=para[12:21]
+  lambda1<-c(exp(X1%*%b1))
+  lambda2<-c(exp(X1%*%b2))
+  l=sum(v*log(1-pi0+pi0*exp(-lambda1-lambda2)))+sum(1-v)*log(pi0)+
+    sum((1-v)*dpois(Z1,lambda1,log=T))+
+    sum((1-v)*dpois(Z2,lambda2,log=T))
+  return(l)
+}
+
+loglik2=loglik.po(po.par)
+AIC2=-2*loglik2+2*21
+BIC2=-2*loglik2+log(n)*21
+
+###MZINB
+U1<-rep(0,11) ##score vector
+H1<-matrix(0,11,11) ##hessian matrix
+U2<-rep(0,11) ##score vector
+H2<-matrix(0,11,11) ##hessian matrix
+
+complete.nb=function(para){
+  repeat{
+    pi0=para[1]
+    b1=para[2:11]
+    theta1=para[12]
+    b2=para[13:22]
+    theta2=para[23]
+    para1<-para
+    mu1<-c(exp(X1%*%b1))
+    mu2<-c(exp(X1%*%b2))
+    ###E-step###
+    u<-(1-pi0)/(1-pi0+pi0*(theta1/(mu1+theta1))^theta1*
+                  (theta2/(mu2+theta2))^theta2)
+    ###M-step###
+    U1[1:10]=((Z1-(1-u*v)*mu1)*theta1/(mu1+theta1))%*%X1
+    U1[11]=sum((1-u*v)*log(theta1/(mu1+theta1))+((1-u*v)*mu1-Z1)/
+                 (mu1+theta1)+digamma(Z1+theta1)-digamma(theta1))
+    U2[1:10]=((Z2-(1-u*v)*mu2)*theta2/(mu2+theta2))%*%X1
+    U2[11]=sum((1-u*v)*log(theta2/(mu2+theta2))+((1-u*v)*mu2-Z2)/
+                 (mu2+theta2)+digamma(Z2+theta2)-digamma(theta2))
+    for (i in 1:10){
+      for (j in 1:10){
+        H1[i,j]=-sum((Z1+(1-u*v)*theta1)*mu1*theta1/
+                       (mu1+theta1)^2*(X1[,i]*X1[,j]))
+      }
+    }
+    H1[11,11]=sum(((1-u*v)*mu1^2+Z1*theta1)/theta1/
+                    (mu1+theta1)^2+trigamma(Z1+theta1)-trigamma(theta1))
+    H1[11,1:10]=((Z1-(1-u*v)*mu1)*mu1/(mu1+theta1)^2)%*%X1
+    H1[1:10,11]=t(H1[11,1:10])
+    for (i in 1:10){
+      for (j in 1:10){
+        H2[i,j]=-sum((Z2+(1-u*v)*theta2)*mu2*theta2/
+                       (mu2+theta2)^2*(X1[,i]*X1[,j]))
+      }
+    }
+    H2[11,11]=sum(((1-u*v)*mu2^2+Z2*theta2)/theta2/
+                    (mu2+theta2)^2+trigamma(Z2+theta2)-trigamma(theta2))
+    H2[11,1:10]=((Z2-(1-u*v)*mu2)*mu2/(mu2+theta2)^2)%*%X1
+    H2[1:10,11]=t(H2[11,1:10])
+    
+    para[1]=1-1/n1*sum(u*v)
+    para[2:12]=para1[2:12]-U1%*%solve(H1)
+    para[13:23]=para1[13:23]-U2%*%solve(H2)
+    dif=para-para1
+    if ((sum(dif*dif))<10^-16){
+      break
+    }
+  }
+  return (para)
+}
+
+nbm1=gamlss(y1 ~ v1+v2+v3+v4+v5+v6+v7+v8+v11, 
+            data=train,family=NBI(sigma.link="inverse"))
+nbm2=gamlss(y2 ~ v1+v2+v3+v4+v5+v6+v7+v8+v11, 
+            data=train,family=NBI(sigma.link="inverse"))
+nb.par=complete.nb(c(0.5,coefficients(nbm1),nbm1$sigma.coefficients,
+                     coefficients(nbm2),nbm2$sigma.coefficients))
+
+loglik.nb <- function(para){
+  pi0=para[1]
+  b1=para[2:11]
+  theta1=para[12]
+  b2=para[13:22]
+  theta2=para[23]
+  mu1<-c(exp(X1%*%b1))
+  mu2<-c(exp(X1%*%b2))
+  l=sum(v*log(1-pi0+pi0*(theta1/(mu1+theta1))^theta1*
+                (theta2/(mu2+theta2))^theta2))+sum(1-v)*log(pi0)+
+    sum((1-v)*dNBI(Z1,mu1,1/theta1,log=T))+
+    sum((1-v)*dNBI(Z2,mu2,1/theta2,log=T))
+  return(l)
+}
+
+loglik3=loglik.nb(nb.par)
+AIC3=-2*loglik3+2*23
+BIC3=-2*loglik3+log(n)*23
+
+##IND
+loglik4=logLik(occur1logit1)+logLik(occur2logit1)+
+  logLik(count1NBI2)+logLik(count2NBI2)
+AIC4=-2*loglik4+2*24
+BIC4=-2*loglik4+log(n)*24
+
+#MZIH fit
+hurdle.pi0<-hurdle.par[1]
+hurdle.beta1<-hurdle.par[2:11]
+hurdle.beta2<-hurdle.par[12:21]
+hurdle.pi1=c(exp(X1%*%hurdle.beta1)/(exp(X1%*%hurdle.beta1)+1))
+hurdle.pi2=c(exp(X1%*%hurdle.beta2)/(exp(X1%*%hurdle.beta2)+1))
+
+NB.mu1=predict(count1NBI2,type="response",newdata=train)
+NB.mu2=predict(count2NBI2,type="response",newdata=train)
+NB.theta1=count1NBI2$sigma.coefficients
+NB.theta2=count2NBI2$sigma.coefficients
+
+table(Z1,Z2)
+#(0,0)
+sum(1-hurdle.pi0+hurdle.pi0*(1-hurdle.pi1)*(1-hurdle.pi2))
+#(0,1)
+sum(hurdle.pi0*(1-hurdle.pi1)*hurdle.pi2*dNBI(0,mu=NB.mu2,sigma=1/NB.theta2))
+#(0,2)
+sum(hurdle.pi0*(1-hurdle.pi1)*hurdle.pi2*dNBI(1,mu=NB.mu2,sigma=1/NB.theta2))
+#(0,3)
+sum(hurdle.pi0*(1-hurdle.pi1)*hurdle.pi2*dNBI(2,mu=NB.mu2,sigma=1/NB.theta2))
+#(0,4)
+sum(hurdle.pi0*(1-hurdle.pi1)*hurdle.pi2*dNBI(3,mu=NB.mu2,sigma=1/NB.theta2))
+#(0,5)
+sum(hurdle.pi0*(1-hurdle.pi1)*hurdle.pi2*dNBI(4,mu=NB.mu2,sigma=1/NB.theta2))
+#(0,6)
+sum(hurdle.pi0*(1-hurdle.pi1)*hurdle.pi2*dNBI(5,mu=NB.mu2,sigma=1/NB.theta2))
+
+#(1,0)
+sum(hurdle.pi0*hurdle.pi1*dNBI(0,mu=NB.mu1,sigma=1/NB.theta1)*(1-hurdle.pi2))
+#(1,1)
+sum(hurdle.pi0*hurdle.pi1*dNBI(0,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(0,mu=NB.mu2,sigma=1/NB.theta2))
+#(1,2)
+sum(hurdle.pi0*hurdle.pi1*dNBI(0,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(1,mu=NB.mu2,sigma=1/NB.theta2))
+#(1,3)
+sum(hurdle.pi0*hurdle.pi1*dNBI(0,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(2,mu=NB.mu2,sigma=1/NB.theta2))
+#(1,4)
+sum(hurdle.pi0*hurdle.pi1*dNBI(0,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(3,mu=NB.mu2,sigma=1/NB.theta2))
+#(1,5)
+sum(hurdle.pi0*hurdle.pi1*dNBI(0,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(4,mu=NB.mu2,sigma=1/NB.theta2))
+#(1,6)
+sum(hurdle.pi0*hurdle.pi1*dNBI(0,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(5,mu=NB.mu2,sigma=1/NB.theta2))
+
+#(2,0)
+sum(hurdle.pi0*hurdle.pi1*dNBI(1,mu=NB.mu1,sigma=1/NB.theta1)*(1-hurdle.pi2))
+#(2,1)
+sum(hurdle.pi0*hurdle.pi1*dNBI(1,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(0,mu=NB.mu2,sigma=1/NB.theta2))
+#(2,2)
+sum(hurdle.pi0*hurdle.pi1*dNBI(1,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(1,mu=NB.mu2,sigma=1/NB.theta2))
+#(2,3)
+sum(hurdle.pi0*hurdle.pi1*dNBI(1,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(2,mu=NB.mu2,sigma=1/NB.theta2))
+#(2,4)
+sum(hurdle.pi0*hurdle.pi1*dNBI(1,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(3,mu=NB.mu2,sigma=1/NB.theta2))
+#(2,5)
+sum(hurdle.pi0*hurdle.pi1*dNBI(1,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(4,mu=NB.mu2,sigma=1/NB.theta2))
+#(2,6)
+sum(hurdle.pi0*hurdle.pi1*dNBI(1,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(5,mu=NB.mu2,sigma=1/NB.theta2))
+
+#(3,0)
+sum(hurdle.pi0*hurdle.pi1*dNBI(2,mu=NB.mu1,sigma=1/NB.theta1)*(1-hurdle.pi2))
+#(3,1)
+sum(hurdle.pi0*hurdle.pi1*dNBI(2,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(0,mu=NB.mu2,sigma=1/NB.theta2))
+#(3,2)
+sum(hurdle.pi0*hurdle.pi1*dNBI(2,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(1,mu=NB.mu2,sigma=1/NB.theta2))
+#(3,3)
+sum(hurdle.pi0*hurdle.pi1*dNBI(2,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(2,mu=NB.mu2,sigma=1/NB.theta2))
+#(3,4)
+sum(hurdle.pi0*hurdle.pi1*dNBI(2,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(3,mu=NB.mu2,sigma=1/NB.theta2))
+#(3,5)
+sum(hurdle.pi0*hurdle.pi1*dNBI(2,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(4,mu=NB.mu2,sigma=1/NB.theta2))
+#(3,6)
+sum(hurdle.pi0*hurdle.pi1*dNBI(2,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(5,mu=NB.mu2,sigma=1/NB.theta2))
+
+#(4,0)
+sum(hurdle.pi0*hurdle.pi1*dNBI(3,mu=NB.mu1,sigma=1/NB.theta1)*(1-hurdle.pi2))
+#(4,1)
+sum(hurdle.pi0*hurdle.pi1*dNBI(3,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(0,mu=NB.mu2,sigma=1/NB.theta2))
+#(4,2)
+sum(hurdle.pi0*hurdle.pi1*dNBI(3,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(1,mu=NB.mu2,sigma=1/NB.theta2))
+#(4,3)
+sum(hurdle.pi0*hurdle.pi1*dNBI(3,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(2,mu=NB.mu2,sigma=1/NB.theta2))
+#(4,4)
+sum(hurdle.pi0*hurdle.pi1*dNBI(3,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(3,mu=NB.mu2,sigma=1/NB.theta2))
+#(4,5)
+sum(hurdle.pi0*hurdle.pi1*dNBI(3,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(4,mu=NB.mu2,sigma=1/NB.theta2))
+#(4,6)
+sum(hurdle.pi0*hurdle.pi1*dNBI(3,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(5,mu=NB.mu2,sigma=1/NB.theta2))
+
+#(5,0)
+sum(hurdle.pi0*hurdle.pi1*dNBI(4,mu=NB.mu1,sigma=1/NB.theta1)*(1-hurdle.pi2))
+#(5,1)
+sum(hurdle.pi0*hurdle.pi1*dNBI(4,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(0,mu=NB.mu2,sigma=1/NB.theta2))
+#(5,2)
+sum(hurdle.pi0*hurdle.pi1*dNBI(4,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(1,mu=NB.mu2,sigma=1/NB.theta2))
+#(5,3)
+sum(hurdle.pi0*hurdle.pi1*dNBI(4,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(2,mu=NB.mu2,sigma=1/NB.theta2))
+#(5,4)
+sum(hurdle.pi0*hurdle.pi1*dNBI(4,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(3,mu=NB.mu2,sigma=1/NB.theta2))
+#(5,5)
+sum(hurdle.pi0*hurdle.pi1*dNBI(4,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(4,mu=NB.mu2,sigma=NB.theta2))
+#(5,6)
+sum(hurdle.pi0*hurdle.pi1*dNBI(4,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(5,mu=NB.mu2,sigma=1/NB.theta2))
+
+#(6,0)
+sum(hurdle.pi0*hurdle.pi1*dNBI(5,mu=NB.mu1,sigma=1/NB.theta1)*(1-hurdle.pi2))
+#(6,1)
+sum(hurdle.pi0*hurdle.pi1*dNBI(5,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(0,mu=NB.mu2,sigma=1/NB.theta2))
+#(6,2)
+sum(hurdle.pi0*hurdle.pi1*dNBI(5,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(1,mu=NB.mu2,sigma=1/NB.theta2))
+#(6,3)
+sum(hurdle.pi0*hurdle.pi1*dNBI(5,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(2,mu=NB.mu2,sigma=1/NB.theta2))
+#(6,4)
+sum(hurdle.pi0*hurdle.pi1*dNBI(5,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(3,mu=NB.mu2,sigma=1/NB.theta2))
+#(6,5)
+sum(hurdle.pi0*hurdle.pi1*dNBI(5,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(4,mu=NB.mu2,sigma=1/NB.theta2))
+#(6,6)
+sum(hurdle.pi0*hurdle.pi1*dNBI(5,mu=NB.mu1,sigma=1/NB.theta1)*
+      hurdle.pi2*dNBI(5,mu=NB.mu2,sigma=1/NB.theta2))
+
+####prediction####
+table(testz1,testz2)
+##MZIH
+hurdle.pi0<-hurdle.par[1]
+hurdle.beta1<-hurdle.par[2:11]
+hurdle.beta2<-hurdle.par[12:21]
+test.hurdle.pi1=c(exp(X2%*%hurdle.beta1)/(exp(X2%*%hurdle.beta1)+1))
+test.hurdle.pi2=c(exp(X2%*%hurdle.beta2)/(exp(X2%*%hurdle.beta2)+1))
+sum(1-hurdle.pi0+hurdle.pi0*(1-test.hurdle.pi1)*(1-test.hurdle.pi2))
+sum(hurdle.pi0*test.hurdle.pi1*(1-test.hurdle.pi2))
+sum(hurdle.pi0*(1-test.hurdle.pi1)*test.hurdle.pi2)
+sum(hurdle.pi0*test.hurdle.pi1*test.hurdle.pi2)
+
+##MZIP
+po.pi0<-po.par[1]
+po.beta1<-po.par[2:11]
+po.beta2<-po.par[12:21]
+test.po.lambda1=c(exp(X2%*%po.beta1))
+test.po.lambda2=c(exp(X2%*%po.beta2))
+sum(1-po.pi0+po.pi0*exp(-test.po.lambda1)*exp(-test.po.lambda2))
+sum(po.pi0*(1-exp(-test.po.lambda1))*exp(-test.po.lambda2))
+sum(po.pi0*exp(-test.po.lambda1)*(1-exp(-test.po.lambda2)))
+sum(po.pi0*(1-exp(-test.po.lambda1))*(1-exp(-test.po.lambda2)))
+
+##MZINB
+nb.pi0<-nb.par[1]
+nb.beta1<-nb.par[2:11]
+nb.theta1<-nb.par[12]
+nb.beta2<-nb.par[13:22]
+nb.theta2<-nb.par[23]
+test.nb.mu1=c(exp(X2%*%nb.beta1))
+test.nb.mu2=c(exp(X2%*%nb.beta2))
+sum(1-nb.pi0+nb.pi0*(nb.theta1/(test.nb.mu1+nb.theta1))^nb.theta1*
+      (nb.theta2/(test.nb.mu2+nb.theta2))^nb.theta2)
+sum(nb.pi0*(1-(nb.theta1/(test.nb.mu1+nb.theta1))^nb.theta1)*
+      (nb.theta2/(test.nb.mu2+nb.theta2))^nb.theta2)
+sum(nb.pi0*(nb.theta1/(test.nb.mu1+nb.theta1))^nb.theta1*
+      (1-(nb.theta2/(test.nb.mu2+nb.theta2))^nb.theta2))
+sum(nb.pi0*(1-(nb.theta1/(test.nb.mu1+nb.theta1))^nb.theta1)*
+      (1-(nb.theta2/(test.nb.mu2+nb.theta2))^nb.theta2))
+
+#IND
+test.ind.pi1=predict(occur1logit1,type="response",newdata=test)
+test.ind.pi2=predict(occur2logit1,type="response",newdata=test)
+sum((1-test.ind.pi1)*(1-test.ind.pi2))
+sum(test.ind.pi1*(1-test.ind.pi2))
+sum((1-test.ind.pi1)*test.ind.pi2)
+sum(test.ind.pi1*test.ind.pi2)
